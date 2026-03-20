@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { FileText, Image, Trash2, Download } from 'lucide-react'
+import { FileText, Image as ImageIcon, Trash2, Download } from 'lucide-react'
 import { deleteAttachment } from '@/actions/attachments'
 import { FileUploadForm } from '@/components/forms/FileUploadForm'
 
@@ -22,7 +22,7 @@ interface PortfolioClientProps {
 }
 
 function FileIcon({ mimeType }: { mimeType: string | null }) {
-  if (mimeType?.startsWith('image/')) return <Image className="h-4 w-4 text-muted-foreground" />
+  if (mimeType?.startsWith('image/')) return <ImageIcon className="h-4 w-4 text-muted-foreground" />
   return <FileText className="h-4 w-4 text-muted-foreground" />
 }
 
