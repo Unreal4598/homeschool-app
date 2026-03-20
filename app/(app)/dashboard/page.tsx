@@ -106,9 +106,9 @@ export default async function DashboardPage() {
         <div className="rounded-lg border bg-card p-4 text-center">
           <p className="text-sm text-muted-foreground">
             No active students.{' '}
-            <a href="/students" className="underline">
-              Add a student
-            </a>{' '}
+            <Link href="/students" className="underline">
+  Add a student
+</Link>{' '}
             to start tracking.
           </p>
         </div>
