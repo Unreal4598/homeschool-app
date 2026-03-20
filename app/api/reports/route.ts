@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { renderToBuffer } from '@react-pdf/renderer'
-import { createElement } from 'react'
+import { renderToBuffer, type DocumentProps } from '@react-pdf/renderer'
+import { createElement, type ReactElement } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { db } from '@/lib/db'
 import { getSchoolYear, calculateCompliance } from '@/lib/compliance'
@@ -193,7 +193,7 @@ export async function GET(req: NextRequest) {
     fileName = safeFilename(`${student.firstName}-portfolio-${syLabel}.pdf`)
   }
 
-  const buffer = await renderToBuffer(pdfElement)
+  const buffer = await renderToBuffer(pdfElement as ReactElement<DocumentProps>)
 
   return new Response(buffer, {
     headers: {
