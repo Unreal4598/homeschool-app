@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String    @id @default(uuid()) @db.Uuid
+  email     String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  familyMemberships FamilyMembership[]
+  activityEntries   ActivityEntry[]
+  generatedReports  GeneratedReport[]
+
+  @@map("users")
+}
+
+model Family {
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String
+  state            String   @default("MO")
+  evalIntervalDays Int      @default(42) @map("eval_interval_days")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  members          FamilyMembership[]
+  students         Student[]
+  subjects         Subject[]
+  activityEntries  ActivityEntry[]
+  attachments      Attachment[]
+  evaluations      ProgressEvaluation[]
+  generatedReports GeneratedReport[]
+
+  @@map("families")
+}
+
+model FamilyMembership {
+  id        String    @id @default(uuid()) @db.Uuid
+  familyId  String    @map("family_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  role      String    @default("member")
+  invitedAt DateTime? @map("invited_at")
+  joinedAt  DateTime? @map("joined_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  family Family @relation(fields: [familyId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([familyId, userId])
+  @@map("family_memberships")
+}
+
+model Student {
+  id          String    @id @default(uuid()) @db.Uuid
+  familyId    String    @map("family_id") @db.Uuid
+  firstName   String    @map("first_name")
+  lastName    String    @map("last_name")
+  dateOfBirth DateTime  @map("date_of_birth") @db.Date
+  gradeLevel  String?   @map("grade_level")
+  notes       String?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  family      Family                   @relation(fields: [familyId], references: [id])
+  allocations EntryStudentAllocation[]
+  attachments Attachment[]
+  evaluations ProgressEvaluation[]
+
+  @@index([familyId])
+  @@map("students")
+}
+
+model Subject {
+  id        String    @id @default(uuid()) @db.Uuid
+  familyId  String?   @map("family_id") @db.Uuid
+  name      String
+  isCore    Boolean   @map("is_core")
+  isSystem  Boolean   @default(false) @map("is_system")
+  sortOrder Int       @default(0) @map("sort_order")
+  createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  family          Family?              @relation(fields: [familyId], references: [id])
+  activityEntries ActivityEntry[]
+  attachments     Attachment[]
+  evaluations     ProgressEvaluation[]
+
+  @@map("subjects")
+}
+
+model ActivityEntry {
+  id           String    @id @default(uuid()) @db.Uuid
+  familyId     String    @map("family_id") @db.Uuid
+  createdById  String    @map("created_by") @db.Uuid
+  entryDate    DateTime  @map("entry_date") @db.Date
+  subjectId    String    @map("subject_id") @db.Uuid
+  totalMinutes Int       @map("total_minutes")
+  location     String
+  notes        String?
+  isShared     Boolean   @default(false) @map("is_shared")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  family      Family                   @relation(fields: [familyId], references: [id])
+  createdBy   User                     @relation(fields: [createdById], references: [id])
+  subject     Subject                  @relation(fields: [subjectId], references: [id])
+  allocations EntryStudentAllocation[]
+  attachments Attachment[]
+
+  @@index([familyId, entryDate, deletedAt])
+  @@map("activity_entries")
+}
+
+model EntryStudentAllocation {
+  id               String   @id @default(uuid()) @db.Uuid
+  entryId          String   @map("entry_id") @db.Uuid
+  studentId        String   @map("student_id") @db.Uuid
+  allocatedMinutes Int      @map("allocated_minutes")
+  isOverride       Boolean  @default(false) @map("is_override")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  entry   ActivityEntry @relation(fields: [entryId], references: [id])
+  student Student       @relation(fields: [studentId], references: [id])
+
+  @@unique([entryId, studentId])
+  @@index([studentId, entryId])
+  @@map("entry_student_allocations")
+}
+
+model Attachment {
+  id         String    @id @default(uuid()) @db.Uuid
+  familyId   String    @map("family_id") @db.Uuid
+  studentId  String    @map("student_id") @db.Uuid
+  entryId    String?   @map("entry_id") @db.Uuid
+  subjectId  String?   @map("subject_id") @db.Uuid
+  fileName   String    @map("file_name")
+  filePath   String    @map("file_path")
+  fileSize   BigInt?   @map("file_size")
+  mimeType   String?   @map("mime_type")
+  notes      String?
+  uploadDate DateTime  @map("upload_date") @db.Date
+  createdAt  DateTime  @default(now()) @map("created_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  family      Family               @relation(fields: [familyId], references: [id])
+  student     Student              @relation(fields: [studentId], references: [id])
+  entry       ActivityEntry?       @relation(fields: [entryId], references: [id])
+  subject     Subject?             @relation(fields: [subjectId], references: [id])
+  evaluations ProgressEvaluation[]
+
+  @@index([studentId, deletedAt])
+  @@map("attachments")
+}
+
+model ProgressEvaluation {
+  id           String    @id @default(uuid()) @db.Uuid
+  familyId     String    @map("family_id") @db.Uuid
+  studentId    String    @map("student_id") @db.Uuid
+  evalDate     DateTime  @map("eval_date") @db.Date
+  evalType     String    @map("eval_type")
+  subjectId    String?   @map("subject_id") @db.Uuid
+  notes        String?
+  attachmentId String?   @map("attachment_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  family     Family      @relation(fields: [familyId], references: [id])
+  student    Student     @relation(fields: [studentId], references: [id])
+  subject    Subject?    @relation(fields: [subjectId], references: [id])
+  attachment Attachment? @relation(fields: [attachmentId], references: [id])
+
+  @@index([studentId, evalDate])
+  @@map("progress_evaluations")
+}
+
+model GeneratedReport {
+  id             String    @id @default(uuid()) @db.Uuid
+  familyId       String    @map("family_id") @db.Uuid
+  studentId      String?   @map("student_id") @db.Uuid
+  reportType     String    @map("report_type")
+  schoolYear     String    @map("school_year")
+  dateRangeStart DateTime? @map("date_range_start") @db.Date
+  dateRangeEnd   DateTime? @map("date_range_end") @db.Date
+  filePath       String?   @map("file_path")
+  generatedById  String    @map("generated_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  family      Family @relation(fields: [familyId], references: [id])
+  generatedBy User   @relation(fields: [generatedById], references: [id])
+
+  @@map("generated_reports")
+}
